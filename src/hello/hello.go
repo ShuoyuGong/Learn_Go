@@ -3,14 +3,17 @@ package main
 import "fmt"
 
 func main() {
-Lable1:
-	for {
-		for a := 0; a < 10; a++ {
-			fmt.Println(a)
-			if a > 5 {
-				break Lable1
-			}
-		}
+	var fs = [4]func(){}
+
+	for i := 0; i < 4; i++ {
+		defer fmt.Println("defer i = ", i)
+		defer func() {
+			fmt.Println("defer_closure i = ", i)
+		}()
+		fs[i] = func() { fmt.Println("closeure i = ", i) }
 	}
-	fmt.Println("结束了")
+
+	for _, f := range fs {
+		f()
+	}
 }

@@ -440,6 +440,7 @@ fmt.Println(PB)
 - break 和 continue 配合标签可用于多层循环的跳出
 - goto 是调整执行位置，与其它 2 个语句配合标签结果并不相同
 - break 使用->跳出指定标签循环（goto、continue 同理）
+
   ```Go
   Lable1:
   for {
@@ -454,3 +455,300 @@ fmt.Println(PB)
   ```
 
 ## 数组 Array
+
+- 定义数组的格：var <varName> [n] <type> , n >= 0
+
+  ```Go
+  var a [2] int
+  a := [2] int{1, 1}
+  a := [...]int{1, 1, 1, 3, 4, 5, 6}
+  ```
+
+- 数组的长度也是类型的一部分，因此具有不同长度的数组为不同类型
+- 注意区分指向数组指针和指针数组
+- 数组在 Go 中为值类型
+- 数组之间可以用 == 或 != 进行比较，但不可以使用 < 或 >
+  ```Go
+  a := [...]int{1, 1}
+  b := [...]int{1, 2}
+  fmt.Println(a == b)
+  ```
+- 可以使用 new 创建数组，此方法返回一个指向数组的指针
+  ```Go
+  a := new([10]int)
+  fmt.Println(a)
+  ```
+- Go 支持多维数组
+  ```Go
+  a := [2][3]int{
+  {1, 2, 3},
+  {4, 5, 6}}
+  fmt.Println(a)
+  ```
+- Go 冒泡排序
+  ```Go
+  array := [...]int{23, 45, 7, 89, 23, 12, 563, 323, 12, 32, 45}
+  fmt.Println(array)
+  length := len(array)
+  for i := 0; i < length; i++ {
+  	for j := i + 1; j < length; j++ {
+  		if array[i] < array[j] {
+  			temp := array[i]
+  			array[i] = array[j]
+  			array[j] = temp
+  		}
+  	}
+  }
+  fmt.Println(array)
+  ```
+
+## 切片 Slice
+
+- 其本身并不是数组，它指向底层的数组
+- 作为变长的数组的替代方案，可以关联底层数组的局部或全部
+- 为引用类型
+- 可以直接创建或从底层数组中获取生成
+  ```Go
+  // 创建Slice
+  // var s1 [3]int
+  // 从已有数组中获取
+  array := [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+  s2 := array[5:10] // array 5, 6, 7, 8, 9] 包含第10位
+  // 一直取到数组尾部
+  // 1.
+  // s2 := array[5:len(array)]
+  // 2.
+  s2 := array[5:]
+  fmt.Println(s2)
+  ```
+- 使用 len 获取元素个数，使用 cap 获取容量
+- 一般使用 make 创建
+- 如果多个 slice 指向相同的底层数组，其中一个的值改变会影响全部
+- make([] T , len , cap)
+- 其中 cap 可以省略，则和 len 值相同
+- len 表示存数的元素个数，cap 表示容量
+
+> Reslice 从一个切片中重新获取一个切片
+
+- Reclice 时索引以被 slice 的切片为准
+  ```Go
+  a := []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'}
+  s1 := a[2:9]
+  fmt.Println(string(s1))
+  s2 := s1[1:3]
+  // cdefghi
+  fmt.Println(string(s2))
+  // de
+  ```
+- 索引不可以超过被 slice 的切片容量 cap 值
+- 索引越界不会导致底层数组的重新分配，而是引发错误
+
+> Append 在 slice 尾部追加元素
+
+- 可以在 slice 尾部追加元素
+- 可以将一个 slice 追加到另一个 slice 尾部
+- 如果最终长度未超过追加到 slice 的容量则返回原始 slice
+- 如果超过追加到 slice 的容量则将重新分配数组并拷贝原始数据
+  ```Go
+  s1 := make([]int, 3, 6)
+  fmt.Printf("%p\n", s1)
+  s1 = append(s1, 1, 3, 4)
+  fmt.Printf("%p\n", s1)
+  s1 = append(s1, 1, 3, 4)
+  fmt.Printf("%p\n", s1)
+  ```
+
+> Copy 拷贝数组
+
+```Go
+  array := []int{1, 2, 3, 4, 5, 6, 7}
+  array1 := []int{9, 9, 9, 0}
+  copy(array, array1)
+  fmt.Println(array, array1)
+  // [9 9 9 0 5 6 7] [9 9 9 0]
+```
+
+## Map
+
+- 类似其它编程语言中的哈希表或字典，以 key-value 形式存储数据
+- key 必须是支持 ==或 != 比较运算的类型，不可以是函数、map 或 slice
+- Map 查找比线性搜索快很多，但比索引访问数据的类型慢 100 倍
+- Map 使用 make()创建，支持 := 简写方式
+- make ([keyType] valueType , cap)，cap 表示容量，可省略
+
+  ```Go
+    // var m map[int]map[int]string
+    // m = make(map[int]map[int]string)
+    // var m = map[int]string{} //第一种
+    // var m = make(map[int]string) //第二种
+    m := make(map[int]string) //第三种
+  ```
+
+- 超出容量时会自动扩容，但尽量提供一个合理的初始值
+- 使用 len 获取元素个数
+- 键值对不存在时自动添加，使用 delete()删除某键值对
+  ```Go
+  delete(m,1)
+  ```
+- 使用 for range 对 map 和 slice 进行迭代操作
+
+  ```Go
+    // 对 map 进行迭代操作
+    	for K:v := range map{
+        ...
+      }
+    // 对 slice 进行迭代操作
+    	for i:v := range slice{
+        ...
+      }
+    sm := make([]map[int]string, 10)
+    // ---------------------------------------
+    for i := range sm {
+      sm[i] = make(map[int]string, 1)
+      sm[i][1] = "OK"
+      fmt.Println(sm[i])
+    }
+    fmt.Println(sm)
+  ```
+
+- 对 map 进行排序
+
+  ```Go
+  package main
+
+  import (
+    "fmt"
+    "sort"
+  )
+
+  func main() {
+    m := map[int]string{1: "a", 2: "b", 3: "c", 4: "d", 5: "e", 6: "f"}
+    s := make([]int, len(m))
+    i := 0
+    for k, \_ := range m {
+    s[i] = k
+    i++
+  }
+
+  sort.Ints(s)
+  fmt.Println(s)
+  }
+  ```
+
+- 对 map 进行键值调换
+
+  ```Go
+  m := map[int]string{1: "a", 2: "b", 3: "c", 4: "d", 5: "e", 6: "f"}
+  s := make(map[string]int)
+
+  for k, v := range m {
+  	s[v] = k
+  }
+
+  fmt.Println(s)
+  ```
+
+## 函数 Function
+
+- Go 函数不支持嵌套、重载和默认参数
+- 但支持以下特性
+
+  - 无须声明原型
+  - 不定长度变参
+
+    ```Go
+    func A(a ... int) {
+      // a 变成了一个slice
+      ...
+    }
+    ```
+
+  - 多返回值
+  - 命名返回值参数
+  - 匿名函数
+    ```Go
+    func main() {
+    a := func() {
+      fmt.Print("OK")
+    }
+    a()
+    }
+    ```
+  - 闭包
+
+    ```Go
+    package main
+    import "fmt"
+
+    func main() {
+      f := closure(10)
+      fmt.Println(f(1))
+    }
+
+    func closure(x int) func(int) int {
+      return func(i int) int {
+        eturn x + i
+      }
+    }
+    ```
+
+- 定义函数使用关键字 func，且左大括号不能另起一行
+- 函数也可以作为一种类型使用
+
+## defer
+
+- defer 的执行方式类似其它语言中的析构函数，在函数体执行结束后按照调用顺序的相反顺序逐个执行
+- 即使函数发生严重错误也会执行
+- 支持匿名函数的调用
+- 常用于资源管理、文件关闭、解锁以及记录时间等操作
+- 通过与匿名函数配合可在 return 之后修改函数计算结果
+- 如果函数体内某个变量作为 defer 是匿名函数的参数，则在定义 defer 时即已获得了拷贝，否则则是引用某个变量的地址
+- Go 没有异常机制，但有 panic/reover 模式来处理错误
+- Panic 可以在任何地方引发，但 reover 只有在 defer 调用的函数中有效
+
+  ```Go
+  // 引发Panic ，随后使用 defer reover 跳过panic ,继续执行代码
+  func main() {
+  	A()
+  	B()
+  	C()
+  }
+
+  func A() {
+    fmt.Println("Func A")
+  }
+
+  func B() {
+    defer func() {
+      if err := recover(); err != nil {
+        fmt.Println("Recover in B")
+      }
+    }()
+    panic("Painc in B")
+  }
+
+  func C() {
+    fmt.Println("Func C")
+  }
+  ```
+
+- 一般使用
+
+  ```Go
+  fmt.Println("a")
+  defer fmt.Println("b")
+  defer fmt.Println("c")
+  // 结果为 a c b ，defer定义的操作从下往上执行
+  ```
+
+- 闭包使用
+
+  ```Go
+  for i := 0; i < 4; i++ {
+  	defer func() {
+  		fmt.Println(i)
+  	}()
+  }
+  // 结果为 4 4 4 4
+  // 因为匿名函数引用的是i的实际地址
+  ```
