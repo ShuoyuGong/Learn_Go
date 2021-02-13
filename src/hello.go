@@ -2,18 +2,20 @@ package main
 
 import "fmt"
 
+type A struct {
+	Name string
+}
+
+type B struct {
+	Name string
+}
+
 func main() {
-	var fs = [4]func(){}
+	a := A{}
+	a.Print()
+	// fmt.Println(a)
+}
 
-	for i := 0; i < 4; i++ {
-		defer fmt.Println("defer i = ", i)
-		defer func() {
-			fmt.Println("defer_closure i = ", i)
-		}()
-		fs[i] = func() { fmt.Println("closeure i = ", i) }
-	}
-
-	for _, f := range fs {
-		f()
-	}
+func (a A) Print() {
+	fmt.Println("A")
 }

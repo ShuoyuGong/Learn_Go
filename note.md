@@ -752,3 +752,185 @@ fmt.Println(PB)
   // 结果为 4 4 4 4
   // 因为匿名函数引用的是i的实际地址
   ```
+
+## 结构 Struct
+
+- Go 中的 strut 与 C 中的 struct 非常相似，并且 Go 没有 class
+- 使用 type <\*name> struct{} 定义结构，名称遵循可见性规则
+
+  ```Go
+  / 定义结构
+  type person struct {
+  	Name string
+  	Age  int
+  }
+
+  func main() {
+  // a := person{}
+  a := person{
+  	Name: "GSY",
+  }
+  // a.Name = "GSY"
+  a.Age = 21
+  fmt.Println(a)
+  }
+  ```
+
+- 支持指向自身的指针类型成员
+
+  ```Go
+  // 定义结构
+  type person struct {
+  	Name string
+  	Age  int
+  }
+
+  func main() {
+    a := person{
+      Name: "GSY",
+    }
+    // a.Name = "GSY"
+    a.Age = 21
+    fmt.Println(a)
+    fmt.Println("-------------------")
+    A(&a)
+    fmt.Println(a)
+  }
+
+  func A(per \*person) {
+    per.Age = 13
+    fmt.Println(per)
+  }
+  ```
+
+- 支持匿名结构，可用做成员或定义成员变量
+
+  ```Go
+  // 匿名结构定义
+  a := struct {
+  	Name string
+  	Age  int
+  }{
+  	Name: "GSY",
+  	Age: 21,
+  }
+  fmt.Println(a)
+
+  // 定义指针匿名结构
+  a := &struct {
+  	Name string
+  	Age  int
+  }{
+  	Name: "GSY",
+  	Age: 21,
+  }
+  ```
+
+- 匿名结构也可用于 map 的值
+- 可以使用字面值对结构进行初始化
+- 允许直接通过指针来读写结构成员
+  ```Go
+  a := &struct {
+  	Name string
+  	Age  int
+  }{
+  	Name: "GSY",
+  	Age: 21,
+  }
+  fmt.Println(*a)
+  ```
+- 相同类型的成员可进行直接拷贝赋值
+- 支持 ==与 !比较运算符，但不支持 > 或 <
+
+  ```Go
+  type Person struct {
+  	Name string
+  	Age  int
+  }
+
+  func main() {
+    a := Person{
+      Name: "GSY",
+      Age: 21,
+    }
+    b := Person{
+      Name: "GSY",
+      Age: 20,
+    }
+    fmt.Println(b == a)
+  }
+  ```
+
+- 支持匿名字段，本质上是定义了以某个类型名为名称的字段
+- 嵌入结构作为匿名字段看起来像继承，但不是继承
+
+  ```Go
+  type Person struct {
+    Name    string
+    Age     int
+    Contact struct {
+      Phone, City string
+    }
+  }
+
+  func main() {
+    a := Person{
+      Name: "GSY",
+      Age:  21,
+    }
+    a.Contact.Phone = "17630348888"
+    a.Contact.City = "郑州"
+
+    fmt.Println(a)
+  }
+
+  ```
+
+  ```Go
+  type human struct {
+    Name string
+    Age  int
+    Sex  int
+  }
+
+  type Teacher struct {
+    human
+    Post string // 职务
+  }
+
+  type Student struct {
+    human
+    Class string // 班级
+  }
+
+  func main() {
+    a := Teacher{
+      Post:  "教导主任",
+      human: human{Name: "GSY", Age: 21, Sex: 0},
+    }
+    b := Student{
+      Class: "一年级一班",
+      human: human{Name: "GSY", Age: 22, Sex: 1},
+    }
+    a.Name = "TEST"
+    a.human.Sex = 233
+    a.Post = "班主任"
+    fmt.Println(a)
+    fmt.Println(b)
+  }
+  ```
+
+- 可以使用匿名字段指针
+
+## 方法 Method
+
+- Go 中虽然没有 class，但依然有 method
+- 通过显示说明 receiver 来实现与某个类型组合
+- 只能为同一个包中的类型定义方法
+- Receiver 可以是类型的值或指针
+- 不存在方法的重载
+- 可以使用值或指针来调用方法，编译器会自动完成转换
+- 从某种意义上来说，方法是函数的语法糖，因为 receiver 其实就是方法所接收的第一个参数（Method Values vs. Method Expression）
+- 如果外部结构和嵌入结构存在同名方法，则优先调用外部结构的方法
+- 类型别名不会拥有底层类型所附带的方法
+- 方法可以调用结构中的非公开字段
