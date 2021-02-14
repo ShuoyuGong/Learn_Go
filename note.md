@@ -929,8 +929,362 @@ fmt.Println(PB)
 - 只能为同一个包中的类型定义方法
 - Receiver 可以是类型的值或指针
 - 不存在方法的重载
+
+  ```Go
+  type A struct {
+    Name string
+  }
+
+  type B struct {
+    Name string
+  }
+
+  func main() {
+    a := A{}
+    a.Print()
+    // fmt.Println(a)
+
+    b := B{}
+    b.Print()
+  }
+
+  func (a A) Print() {
+    fmt.Println("A")
+  }
+
+  func (a B) Print() {
+    fmt.Println("B")
+  }
+
+  ```
+
 - 可以使用值或指针来调用方法，编译器会自动完成转换
 - 从某种意义上来说，方法是函数的语法糖，因为 receiver 其实就是方法所接收的第一个参数（Method Values vs. Method Expression）
 - 如果外部结构和嵌入结构存在同名方法，则优先调用外部结构的方法
 - 类型别名不会拥有底层类型所附带的方法
 - 方法可以调用结构中的非公开字段
+
+  ```GO
+  type A struct {
+  	Name string // 公有字段
+  	name string // 私有字段
+  }
+
+  func main() {
+    a := A{}
+    a.Print()
+    fmt.Println(a.Name)
+    fmt.Println(a.name)
+  }
+
+  func (a \*A) Print() {
+    a.Name = "123"
+    a.name = "345"
+  }
+  ```
+
+- 根据为结构增加方法的知识，声明一个底层类型为 Int 的类型，并实现调用某个方法就递增 100
+
+  ```Go
+  package main
+
+  import "fmt"
+
+  type A struct {
+    Count int
+  }
+
+  func main() {
+    a := A{}
+    a.Increasing()
+    fmt.Println(a.Count)
+  }
+
+  func (a \*A) Increasing() {
+    a.Count = a.Count + 100
+  }
+  // --------------------------------------
+  type A int
+
+  func main() {
+    var a A
+    a.Increasing(100)
+    fmt.Println(a)
+  }
+
+  func (a *A) Increasing(num int) {
+    *a += A(num)
+  }
+  ```
+
+## 接口 interface
+
+- 接口是一个或多个方法签名的集合
+- 只要某个类型拥有该接口的所有方法签名，即算实现给接口，无需显示声明实现了那个接口，这称为 Structural Typing
+
+  ```Go
+  type USB interface {
+    Name() string
+    Connect()
+  }
+
+  type PhoneConnect struct {
+    name string
+  }
+
+  func (pc PhoneConnect) Name() string {
+    return pc.name
+  }
+  func (pc PhoneConnect) Connect() {
+    fmt.Println("Connect:", pc.name)
+  }
+  func main() {
+    var a USB
+    a = PhoneConnect{"PhoneConnecter"}
+    a.Connect()
+  }
+
+  ```
+
+- 接口只有方法声明，没有实现，没有数据字段
+- 接口可以将匿名嵌入其他接口，或嵌入到结构中
+
+  ```Go
+  type USB interface {
+  	Name() string
+  	Connecter
+  }
+  type PhoneConnect struct {
+  	name string
+  }
+  type Connecter interface {
+  	Connect()
+  }
+
+  func (pc PhoneConnect) Name() string {
+    return pc.name
+  }
+  func (pc PhoneConnect) Connect() {
+    mt.Println("Connect:", pc.name)
+  }
+
+  func main() {
+    var a USB
+    a = PhoneConnect{"PhoneConnecter"}
+    a.Connect()
+  }
+  ```
+
+- 将对象赋值给接口时，会发生拷贝，而接口内部存储的是指向这个复制品的指针，既无法修改复制品的状态，也无法获取指针
+
+  ```Go
+  package main
+
+  import "fmt"
+
+  type USB interface {
+    Name() string
+    Connecter
+  }
+  type PhoneConnect struct {
+    name string
+  }
+  type Connecter interface {
+    Connect()
+  }
+
+  func (pc PhoneConnect) Name() string {
+    return pc.name
+  }
+  func (pc PhoneConnect) Connect() {
+    fmt.Println("Connect:", pc.name)
+  }
+  func main() {
+    // var a USB
+    // a = PhoneConnect{"PhoneConnecter"}
+    // a.Connect()
+    // Disconnect(a)
+
+    // 类型转换
+    pc := PhoneConnect{"PhoneConnecter"}
+    var a Connecter
+    a = Connecter(pc)
+    a.Connect()
+
+    pc.name = "PC"
+    a.Connect()
+
+  }
+  func Disconnect(usb USB) {
+    // if pc, ok := usb.(PhoneConnect); ok {
+    // 	fmt.Println("Disconnect", pc.name)
+    // 	return
+    // }
+    switch v := usb.(type) {
+    case PhoneConnect:
+      fmt.Println("Disconnect", v.name)
+    default:
+      fmt.Println("Unkown")
+    }
+  }
+  ```
+
+- 只有当接口存储的类型和对象都为 nil 时，接口才等于 nil
+  ```Go
+  func main() {
+  	var a interface{}
+  	fmt.Println(a == nil)
+  	var p *int = nil
+  	a = p
+  	fmt.Println(a == nil)
+  }
+  ```
+- 接口调用不会做 receiver 的自动转换
+- 接口同样支持匿名字段方法
+- 接口也可实现类似 OOP 中的多态
+- 空接口可以作为任何数据类型的容器
+
+## 反射 reflection
+
+- 反射可大大提高程序的灵活性，使得 interface{}有更大的发挥余地
+- 反射使用 TypeOf 和 ValueOf 函数从接口中获取目标对象信息
+
+  ```Go
+  type User struct {
+    Id   int
+    Name string
+    Age  int
+  }
+  func (u User) Hello() {
+    fmt.Println("Hello,world")
+  }
+
+  func main() {
+    u := User{1, "OK", 12}
+    Info(&u)
+  }
+
+  // 空接口
+  func Info(o interface{}) {
+    t := reflect.TypeOf(o)
+    fmt.Println("Type：", t.Name())
+
+    // 判断类型
+    if k := t.Kind(); k != reflect.Struct {
+      fmt.Println("类型错误，终止")
+      return
+    }
+
+    v := reflect.ValueOf(o)
+    fmt.Println("Field:")
+
+    for i := 0; i < t.NumField(); i++ {
+      f := t.Field(i)
+      val := v.Field(i).Interface()
+      fmt.Println("%6s: %v = %v\n", f.Name, f.Type, val)
+    }
+    fmt.Println("-----------------------------------------")
+    for i := 0; i < t.NumMethod(); i++ {
+      m := t.Method(i)
+      fmt.Println("%6s: %v = %v\n", m.Name, m.Type)
+    }
+  }
+  ```
+
+- 反射会将匿名字段作为独立字段（匿名字段本质）
+
+  ```Go
+  type User struct {
+    Id   int
+    Name string
+    Age  int
+  }
+  type Mannger struct {
+    User
+    Title string
+  }
+
+  func main() {
+    // 初始化
+    m := Mannger{User: User{1, "OK", 12}, Title: "123"}
+    t := reflect.TypeOf(m)
+    fmt.Printf("%#v\n", t.FieldByIndex([]int{1}))
+  }
+  ```
+
+- 想要利用反射修改对象状态，前提是 interface.data 是 settable，即 pointer-interface
+- 通过反射可以“动态”调用方法
+
+  ```Go
+  // 定义结构
+  type User struct {
+    Id   int
+    Name string
+    Agr  int
+  }
+
+  // User结构的方法
+  func (u User) Hello(name string) {
+    fmt.Println("Hello", name, ", my name is", u.Name)
+  }
+
+  func main() {
+    u := User{1, "GSY", 21}
+    // 普通调用
+    // u.Hello("CV")
+    v := reflect.ValueOf(u)
+    mv := v.MethodByName("Hello")
+    args := []reflect.Value{reflect.ValueOf("CV")}
+    mv.Call(args)
+  }
+  ```
+
+- 通过反射修改结构指针值
+
+  ```Go
+  // 定义结构
+  type User struct {
+    Id   int
+    Name string
+    Agr  int
+  }
+
+  func main() {
+    u := User{1, "GSY", 21}
+    Set(&u)
+    fmt.Println(u)
+  }
+
+  func Set(o interface{}) {
+    v := reflect.ValueOf(o)
+    if v.Kind() == reflect.Ptr && !v.Elem().CanSet() {
+      fmt.Println("判断没过")
+      return
+    }
+    v = v.Elem()
+    f := v.FieldByName("Name")
+    if !f.IsValid() {
+      fmt.Println("字段不存在")
+      return
+    }
+    if f.Kind() == reflect.String {
+      f.SetString("BYEBYE")
+    }
+  }
+  ```
+
+## 并发 concurrency
+
+- 从源码解析来看，goroutine 只是由官方实现的超级“线程池”而已。每个实例 4-5kb 的栈内存占用和由于实现机制而大幅减少的创建和销毁开销，是制造 Go 号称的高并发的根本原因
+- 并发并不是并行：Concurrency Is Not Parallelism
+- 并发主要由切换时间片来实现“同时”运行，在并行则是直接利用多核实现多线程的运行，但 Go 可以设置使用核数，以发挥多核计算机的能力
+- goroutine 奉行通过通信来共享内存，而不是共享内存俩通信
+
+> > Channel
+
+- Channel 是 goroutine 沟通的桥梁，大都是阻塞同步的
+- 通过 make 创建，close 关闭
+- Channel 是引用类型
+- 可以使用 for range 来迭代不断操作 Channel
+- 可以设置单向或双向通道
+- 可以设置缓存大小，在未填满前不会发生阻塞
