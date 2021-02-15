@@ -1286,5 +1286,169 @@ fmt.Println(PB)
 - 通过 make 创建，close 关闭
 - Channel 是引用类型
 - 可以使用 for range 来迭代不断操作 Channel
+  ```Go
+  func main() {
+    channel := make(chan bool)
+    go func() {
+      fmt.Println("GOGOGO")
+      channel <- true
+      close(channel)
+    }()
+    for v := range channel {
+      fmt.Println(v)
+    }
+    <-channel
+  }
+  ```
 - 可以设置单向或双向通道
+
+  ```Go
+  // 双向通道 可存可取
+    channel := make(chan bool)
+  // 单向通道
+  // 1. 只存
+  // 2. 只取
+  ```
+
 - 可以设置缓存大小，在未填满前不会发生阻塞
+
+  ```Go
+  // 设置缓存
+  channel := make(chan bool,1)
+  // 有缓存是异步的，无缓存是同步执行的阻塞的
+  ```
+
+  ```Go
+  func main() {
+    // 设置使用CPU核数
+    runtime.GOMAXPROCS(runtime.NumCPU())
+    channel := make(chan bool, 10)
+    for i := 0; i < 10; i++ {
+      go Go(channel, i)
+    }
+    for i := 0; i < 10; i++ {
+      <-channel
+    }
+  }
+
+  func Go(channel chan bool, index int) {
+    a := 1
+    for i := 0; i < 100000000; i++ {
+      a += i
+    }
+    fmt.Println(index, "---", a)
+    channel <- true
+  }
+  ```
+
+  ```Go
+  func main() {
+    // 设置使用CPU核数
+    runtime.GOMAXPROCS(runtime.NumCPU())
+    wg := sync.WaitGroup{}
+    wg.Add(10)
+    for i := 0; i < 10; i++ {
+      go Go(&wg, i)
+    }
+    wg.Wait()
+  }
+
+  func Go(wg *sync.WaitGroup, index int) {
+    a := 1
+    for i := 0; i < 100000000; i++ {
+      a += i
+    }
+    fmt.Println(index, "---", a)
+    wg.Done()
+  }
+  ```
+
+  > > Select
+
+  - 可处理一个或多个 channel 的发送于接收
+
+    ```Go
+    func main() {
+      channel1, channel2 := make(chan int), make(chan string)
+      o := make(chan bool)
+
+      go func() {
+        for {
+          select {
+          case v, ok := <-channel1:
+            if !ok {
+              fmt.Println("channel1")
+              o <- true
+              break
+            }
+            fmt.Println("channel1", v)
+          case v, ok := <-channel2:
+            if !ok {
+              fmt.Println("channel2")
+              o <- true
+              break
+            }
+            fmt.Println("channel2", v)
+
+          }
+        }
+      }()
+
+      channel1 <- 1
+      channel2 <- "GSY"
+      channel1 <- 2
+      channel2 <- "GSY1"
+      channel1 <- 3
+      channel2 <- "GSY2"
+      channel1 <- 4
+      channel2 <- "GSY3"
+      channel1 <- 5
+      channel2 <- "GSY4"
+
+      close(channel1)
+      close(channel2)
+
+      <-o
+    }
+    ```
+
+  - 同时有多个可用的 channel 时按随机顺序处理
+  - 可用空 select 来阻塞 main 函数
+  - 可设置超时
+    ```Go
+    func main() {
+      channel1 := make(chan int)
+      select {
+      case v := <-channel1:
+        fmt.Println(v)
+      case <-time.After(3 * time.Second):
+        fmt.Println("Time Out")
+      }
+    }
+    ```
+
+- 创建一个 goroutine，与主线程按顺序相互发送信息若干次打印
+
+  ```Go
+  // 创建全局Channel
+  var Channel chan string
+
+  func Go() {
+    i := 0
+    for {
+      fmt.Println(<-Channel)
+      Channel <- fmt.Sprintf("From Go:Hi, #%d", i)
+      i++
+    }
+  }
+
+  func main() {
+    // 初始化Channel
+    Channel := make(chan string)
+    go Go()
+    for i := 0; i < 10; i++ {
+      Channel <- fmt.Sprintf("From Main:hello, #%d", i)
+      fmt.Println(<-Channel)
+    }
+  }
+  ```
